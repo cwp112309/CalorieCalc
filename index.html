@@ -17,6 +17,7 @@ input[type="text"], input[type="number"], input[type="password"] { width: 100%; 
 #entriesList div { padding: 6px 0; border-bottom: 1px dashed #e6edf3; display: flex; justify-content: space-between; }
 .tot { font-size: 18px; font-weight: 700; margin-top: 8px; }
 .hint { font-size: 12px; color: #718096; margin-top: 8px; }
+canvas { margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -73,6 +74,11 @@ input[type="text"], input[type="number"], input[type="password"] { width: 100%; 
   </div>
 
   <div class="card">
+    <h3>Calories Last 7 Days</h3>
+    <canvas id="calorieChart" width="400" height="150"></canvas>
+  </div>
+
+  <div class="card">
     <h3>Quick Calculator</h3>
     <label>Amount (g) <input id="calcAmount" type="number" placeholder="100"></label>
     <label>Calories per 100g <input id="calcPer100" type="number" placeholder="250"></label>
@@ -82,10 +88,11 @@ input[type="text"], input[type="number"], input[type="password"] { width: 100%; 
 </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 let currentUser = null;
+let chart = null;
 
-// Show forms
 function showAnon() {
   document.getElementById('anonArea').style.display = 'flex';
   document.getElementById('userArea').style.display = 'none';
@@ -97,69 +104,4 @@ showAnon();
 
 // Switch forms
 document.getElementById('showLogin').onclick = ()=>{ document.getElementById('loginForm').style.display='block'; document.getElementById('signupForm').style.display='none'; };
-document.getElementById('showSignup').onclick = ()=>{ document.getElementById('signupForm').style.display='block'; document.getElementById('loginForm').style.display='none'; };
-document.getElementById('toLogin').onclick = e=>{ e.preventDefault(); document.getElementById('loginForm').style.display='block'; document.getElementById('signupForm').style.display='none'; };
-document.getElementById('toSignup').onclick = e=>{ e.preventDefault(); document.getElementById('signupForm').style.display='block'; document.getElementById('loginForm').style.display='none'; };
-
-// Signup
-document.getElementById('signupBtn').onclick = ()=>{
-  const u = document.getElementById('signupUsername').value.trim();
-  const p = document.getElementById('signupPass').value;
-  if(!u||!p){ alert('Enter username & password'); return; }
-  if(localStorage.getItem('user_'+u)){ alert('Username exists'); return; }
-  localStorage.setItem('user_'+u, JSON.stringify({password:p, entries:[]}));
-  alert('Signed up! Login now.'); document.getElementById('signupForm').style.display='none'; document.getElementById('loginForm').style.display='block';
-};
-
-// Login
-document.getElementById('loginBtn').onclick = ()=>{
-  const u = document.getElementById('loginUsername').value.trim();
-  const p = document.getElementById('loginPass').value;
-  const data = localStorage.getItem('user_'+u);
-  if(!data){ alert('User not found'); return; }
-  const obj = JSON.parse(data);
-  if(obj.password!==p){ alert('Wrong password'); return; }
-  currentUser = u; document.getElementById('anonArea').style.display='none'; document.getElementById('userArea').style.display='block'; document.getElementById('userEmail').innerText=u;
-  document.getElementById('mainContent').style.display='block';
-  renderEntries();
-};
-
-// Logout
-document.getElementById('logoutBtn').onclick = ()=>{ currentUser=null; showAnon(); };
-
-// Add Entry
-document.getElementById('addBtn').onclick = ()=>{
-  if(!currentUser) return alert('Login first');
-  const food = document.getElementById('foodName').value.trim();
-  const cal = Number(document.getElementById('calories').value);
-  if(!food||!cal) return alert('Provide food and calories');
-  const data = JSON.parse(localStorage.getItem('user_'+currentUser));
-  data.entries.push({food, calories: cal, time: new Date().toISOString()});
-  localStorage.setItem('user_'+currentUser, JSON.stringify(data));
-  document.getElementById('foodName').value=''; document.getElementById('calories').value='';
-  renderEntries();
-};
-
-// Render Entries & Today Total
-function renderEntries(){
-  if(!currentUser) return;
-  const data = JSON.parse(localStorage.getItem('user_'+currentUser));
-  const entries = data.entries.reverse();
-  let today = new Date().toISOString().slice(0,10);
-  let total=0; let html='';
-  entries.forEach(e=>{
-    if(e.time.slice(0,10)===today) total+=Number(e.calories);
-    html += `<div><div>${e.food}<br><span class="hint">${new Date(e.time).toLocaleString()}</span></div><div>${e.calories} kcal</div></div>`;
-  });
-  document.getElementById('todayTotal').innerText = total+' kcal';
-  document.getElementById('entriesList').innerHTML = html || '<div class="hint">No entries yet.</div>';
-}
-
-// Export CSV
-document.getElementById('exportCsv').onclick = ()=>{
-  if(!currentUser) return alert('Login first');
-  const data = JSON.parse(localStorage.getItem('user_'+currentUser));
-  const rows = [['Food','Calories','Date']];
-  data.entries.forEach(e=>rows.push([e.food,e.calories,e.time]));
-  const csv = rows.map(r=>r.join(',')).join('\n');
-  const blob = ne
+document.getElementById('showSignup').onclick = ()=>{ document.getElementById('signupForm').style
